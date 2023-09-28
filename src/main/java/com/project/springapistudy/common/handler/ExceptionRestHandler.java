@@ -1,8 +1,7 @@
 package com.project.springapistudy.common.handler;
 
 import com.project.springapistudy.common.exception.BaseException;
-import com.project.springapistudy.common.exception.DuplicationMenuException;
-import com.project.springapistudy.common.exception.IdNotFoundException;
+import com.project.springapistudy.common.exception.runtime.NotFoundException;
 import org.springframework.context.support.DefaultMessageSourceResolvable;
 import org.springframework.http.HttpStatus;
 import org.springframework.validation.BindingResult;
@@ -19,7 +18,7 @@ public class ExceptionRestHandler {
 
     @ExceptionHandler(BaseException.class)
     @ResponseStatus(HttpStatus.NOT_FOUND)
-    public ResponseData.ApiResult<?> runtimeBaseException(IdNotFoundException e, HttpServletRequest request) {
+    public ResponseData.ApiResult<?> runtimeBaseException(NotFoundException e, HttpServletRequest request) {
         return handleException(e, request, HttpStatus.NOT_FOUND);
     }
 

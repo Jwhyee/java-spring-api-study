@@ -1,7 +1,9 @@
 package com.project.springapistudy.menu.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.project.springapistudy.common.handler.ResponseData;
+import com.project.springapistudy.common.exception.runtime.NotFoundException;
+import com.project.springapistudy.menu.domain.Menu;
+import com.project.springapistudy.menu.domain.MenuRepository;
 import com.project.springapistudy.menu.object.MenuVo;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -16,7 +18,6 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
-import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 import org.springframework.web.filter.CharacterEncodingFilter;
@@ -24,9 +25,7 @@ import org.springframework.web.filter.CharacterEncodingFilter;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.SoftAssertions.assertSoftly;
 import static org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @AutoConfigureMockMvc
@@ -41,6 +40,9 @@ class MenuRestControllerTest {
 
     @Autowired
     private WebApplicationContext ctx;
+
+    @Autowired
+    private MenuRepository menuRepository;
 
     private String baseUrl = "/menu";
     private final String menuName = "따뜻한 아이스 라떼";
@@ -70,7 +72,7 @@ class MenuRestControllerTest {
         void postApiReqSuccess() throws Exception {
 
 
-            MvcResult mvcResult = mockMvc.perform(post(baseUrl)
+            MvcResult mvcResult = mockMvc.perform(MockMvcRequestBuilders.post(baseUrl)
                             .content(req.formatted("미지근한 카라멜 라떼", "Y"))
                             .contentType(MediaType.APPLICATION_JSON))
                     .andExpect(status().isCreated())
@@ -83,7 +85,7 @@ class MenuRestControllerTest {
         @Test
         @DisplayName("메뉴 저장 요청 실패 - 메뉴 이름 누락")
         void postApiReqInvalidByMenuName() throws Exception {
-            MvcResult mvcResult = mockMvc.perform(post(baseUrl)
+            MvcResult mvcResult = mockMvc.perform(MockMvcRequestBuilders.post(baseUrl)
                             .content(req.formatted("", "Y"))
                             .contentType(MediaType.APPLICATION_JSON))
                     .andExpect(status().isBadRequest())
@@ -95,7 +97,7 @@ class MenuRestControllerTest {
         @Test
         @DisplayName("메뉴 저장 요청 실패 - 사용 여부 누락")
         void postApiReqInvalidByUseYN() throws Exception {
-            MvcResult mvcResult = mockMvc.perform(post(baseUrl)
+            MvcResult mvcResult = mockMvc.perform(MockMvcRequestBuilders.post(baseUrl)
                             .content(req.formatted("딸기 아이스 커피", ""))
                             .contentType(MediaType.APPLICATION_JSON))
                     .andExpect(status().isBadRequest())
@@ -107,7 +109,7 @@ class MenuRestControllerTest {
         @Test
         @DisplayName("메뉴 저장 요청 실패 - 모든 필드 누락")
         void postApiReqInvalid() throws Exception {
-            MvcResult mvcResult = mockMvc.perform(post(baseUrl)
+            MvcResult mvcResult = mockMvc.perform(MockMvcRequestBuilders.post(baseUrl)
                             .content(req.formatted("", ""))
                             .contentType(MediaType.APPLICATION_JSON))
                     .andExpect(status().isBadRequest())
@@ -125,7 +127,7 @@ class MenuRestControllerTest {
         @DisplayName("메뉴 검색 성공")
         void getApiReqSuccess() throws Exception {
             final String resultUrl = saveMenu("따뜻한 오렌지 주스");
-            MvcResult mvcResult = mockMvc.perform(get(resultUrl)
+            MvcResult mvcResult = mockMvc.perform(MockMvcRequestBuilders.get(resultUrl)
                             .contentType(MediaType.APPLICATION_JSON))
                     .andExpect(status().isOk())
                     .andReturn();
@@ -140,7 +142,7 @@ class MenuRestControllerTest {
         @Test
         @DisplayName("메뉴 검색 실패 - 존재하지 않는 ID")
         void getApiReqFailById() throws Exception {
-            mockMvc.perform(get(baseUrl + "/9827348")
+            mockMvc.perform(MockMvcRequestBuilders.get(baseUrl + "/9827348")
                             .contentType(MediaType.APPLICATION_JSON))
                     .andExpect(status().isNotFound())
                     .andReturn();
@@ -156,7 +158,7 @@ class MenuRestControllerTest {
         @DisplayName("메뉴 수정 성공")
         void putApiReqSuccess() throws Exception {
             final String resultUrl = saveMenu("뜨거운 딸기 팥빙수");
-            mockMvc.perform(put(resultUrl)
+            mockMvc.perform(MockMvcRequestBuilders.put(resultUrl)
                             .content(req.formatted("뜨거운 딸기 팥빙수에 두리안 추가", "Y"))
                             .contentType(MediaType.APPLICATION_JSON))
                     .andExpect(status().isOk())
@@ -172,7 +174,7 @@ class MenuRestControllerTest {
         @DisplayName("메뉴 수정 실패 - 유효성 검증 실패")
         void putApiReqInvalid() throws Exception {
             final String resultUrl = saveMenu(menuName);
-            mockMvc.perform(put(resultUrl)
+            mockMvc.perform(MockMvcRequestBuilders.put(resultUrl)
                             .content(req.formatted("", "Y"))
                             .contentType(MediaType.APPLICATION_JSON))
                     .andExpect(status().isBadRequest())
@@ -183,23 +185,45 @@ class MenuRestControllerTest {
     @Nested
     @DisplayName("메뉴 삭제 요청")
     class DeleteMenuApiTest {
+
         @Test
-        @DisplayName("메뉴 삭제 성공")
-        void deleteApiReqSuccess() throws Exception {
-            final String resultUrl = saveMenu("아이스 호박죽");
-            mockMvc.perform(delete(resultUrl)
-                    .contentType(MediaType.APPLICATION_JSON))
+        @DisplayName("메뉴 삭제 성공 - id로 조회 불가")
+        void deleteApiReqSuccessAndFindById() throws Exception {
+            final String requestUrl = saveMenu("호박죽에 팥 추가");
+
+            mockMvc.perform(MockMvcRequestBuilders.delete(requestUrl)
+                            .contentType(MediaType.APPLICATION_JSON))
                     .andExpect(status().isOk());
 
-            MenuVo menuVo = parseObject(findByMenu(resultUrl), MenuVo.class);
-
-            assertThat(menuVo.getUseYN()).isEqualTo("N");
+            mockMvc.perform(MockMvcRequestBuilders.get(requestUrl)
+                            .contentType(MediaType.APPLICATION_JSON))
+                    .andExpect(status().isNotFound());
         }
 
         @Test
-        @DisplayName("메뉴 삭제 실패")
+        @DisplayName("메뉴 삭제 성공 - DB에 데이터 존재 확인")
+        void deleteApiReqSuccessAndExistsDatabase() throws Exception {
+            final String requestUrl = saveMenu("팥죽에 호박 추가");
+
+
+            mockMvc.perform(MockMvcRequestBuilders.delete(requestUrl)
+                            .contentType(MediaType.APPLICATION_JSON))
+                    .andExpect(status().isOk());
+
+            String[] split = requestUrl.split("/");
+
+            Menu findMenu = findByMenuId(Long.valueOf(split[split.length - 1]));
+
+            assertSoftly(softAssertions -> {
+                softAssertions.assertThat(findMenu.getMenuName()).isEqualTo("팥죽에 호박 추가");
+                softAssertions.assertThat(findMenu.getUseYN()).isEqualTo("N");
+            });
+        }
+
+        @Test
+        @DisplayName("메뉴 삭제 실패 - 존재하지 않는 번호")
         void deleteApiReqFailById() throws Exception {
-            mockMvc.perform(delete(baseUrl + "/9999999")
+            mockMvc.perform(MockMvcRequestBuilders.delete(baseUrl + "/9999999")
                             .contentType(MediaType.APPLICATION_JSON))
                     .andExpect(status().isNotFound());
         }
@@ -207,7 +231,7 @@ class MenuRestControllerTest {
 
 
     private MvcResult findByMenu(String url) throws Exception {
-        return mockMvc.perform(get(url)
+        return mockMvc.perform(MockMvcRequestBuilders.get(url)
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andReturn();
@@ -222,7 +246,7 @@ class MenuRestControllerTest {
                 }
                 """.formatted(menuName, "Y");
 
-        MvcResult mvcResult = mockMvc.perform(post(baseUrl)
+        MvcResult mvcResult = mockMvc.perform(MockMvcRequestBuilders.post(baseUrl)
                         .content(req)
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isCreated())
@@ -235,6 +259,11 @@ class MenuRestControllerTest {
 
     private <T> T parseObject(MvcResult mvcResult, Class<T> type) throws Exception {
         return mapper.readValue(mvcResult.getResponse().getContentAsString(), type);
+    }
+
+    private Menu findByMenuId(Long id) {
+        return menuRepository.findById(id)
+                .orElseThrow(NotFoundException::new);
     }
 
 
