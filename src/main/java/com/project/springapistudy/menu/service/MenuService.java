@@ -42,12 +42,22 @@ public class MenuService {
         throw new NotFoundException();
     }
 
-    public List<MenuVo> findAll() {
-        List<Menu> list = menuRepository.findAllByUseYN("N");
+    @Transactional(readOnly = true)
+    public List<MenuVo> findAllUsageMenu() {
+        List<Menu> list = menuRepository.findAllByUseYN("Y");
         return list.stream()
                 .map(MenuVo::fromEntity)
                 .toList();
     }
+
+    @Transactional(readOnly = true)
+    public List<MenuVo> findAllMenu() {
+        List<Menu> list = menuRepository.findAll();
+        return list.stream()
+                .map(MenuVo::fromEntity)
+                .toList();
+    }
+
 
     @Transactional(readOnly = true)
     public Menu findEntityById(Long id) {

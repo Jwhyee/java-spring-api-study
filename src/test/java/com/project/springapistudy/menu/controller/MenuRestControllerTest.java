@@ -22,6 +22,8 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 import org.springframework.web.filter.CharacterEncodingFilter;
 
+import java.util.ArrayList;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.SoftAssertions.assertSoftly;
 import static org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
@@ -61,6 +63,11 @@ class MenuRestControllerTest {
                 .addFilter(new CharacterEncodingFilter("UTF-8", true))
                 .alwaysDo(print())
                 .build();
+    }
+
+    @BeforeEach
+    void deleteAll() {
+        menuRepository.deleteAll();
     }
 
     @Nested
@@ -140,6 +147,48 @@ class MenuRestControllerTest {
         }
 
         @Test
+        @DisplayName("메뉴 검색 성공 - 삭제 메뉴를 제외한 전체 메뉴")
+        void getApiReqSuccessByUsableMenu() throws Exception {
+            final String resultUrl = saveMenu("맛동산 에이드");
+            saveMenu("김치 라떼");
+            saveMenu("오징어 호두 에이드");
+
+            mockMvc.perform(MockMvcRequestBuilders.delete(resultUrl)
+                            .contentType(MediaType.APPLICATION_JSON))
+                    .andExpect(status().isOk());
+
+            MvcResult mvcResult = mockMvc.perform(MockMvcRequestBuilders.get(baseUrl)
+                            .contentType(MediaType.APPLICATION_JSON))
+                    .andExpect(status().isOk())
+                    .andReturn();
+
+            ArrayList arrayList = parseObject(mvcResult, ArrayList.class);
+
+            assertThat(arrayList.size()).isEqualTo(2);
+        }
+
+        @Test
+        @DisplayName("메뉴 검색 성공 - 삭제를 포함한 전체 메뉴 조회")
+        void getApiReqSuccessByAllMenu() throws Exception {
+            final String resultUrl = saveMenu("오징어 커피 땅콩 에이드");
+            saveMenu("김치찌개 라떼");
+            saveMenu("순두부찌개 에이드");
+
+            mockMvc.perform(MockMvcRequestBuilders.delete(resultUrl)
+                            .contentType(MediaType.APPLICATION_JSON))
+                    .andExpect(status().isOk());
+
+            MvcResult mvcResult = mockMvc.perform(MockMvcRequestBuilders.get(baseUrl + "/admin")
+                            .contentType(MediaType.APPLICATION_JSON))
+                    .andExpect(status().isOk())
+                    .andReturn();
+
+            ArrayList arrayList = parseObject(mvcResult, ArrayList.class);
+
+            assertThat(arrayList.size()).isEqualTo(3);
+        }
+
+        @Test
         @DisplayName("메뉴 검색 실패 - 존재하지 않는 ID")
         void getApiReqFailById() throws Exception {
             mockMvc.perform(MockMvcRequestBuilders.get(baseUrl + "/9827348")
@@ -171,7 +220,7 @@ class MenuRestControllerTest {
         }
 
         @Test
-        @DisplayName("메뉴 수정 실패 - 유효성 검증 실패")
+        @DisplayName("메뉴 수정 실패 - 메뉴 이름 누락")
         void putApiReqInvalid() throws Exception {
             final String resultUrl = saveMenu(menuName);
             mockMvc.perform(MockMvcRequestBuilders.put(resultUrl)

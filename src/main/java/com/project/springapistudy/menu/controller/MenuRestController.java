@@ -32,8 +32,13 @@ public class MenuRestController {
     }
 
     @GetMapping
+    public ResponseEntity<List<MenuVo>> getAllUsageMenuApi() {
+        return ResponseEntity.ok(service.findAllUsageMenu());
+    }
+
+    @GetMapping("/admin")
     public ResponseEntity<List<MenuVo>> getAllMenuApi() {
-        return ResponseEntity.ok(service.findAll());
+        return ResponseEntity.ok(service.findAllMenu());
     }
 
     @GetMapping("/{id}")
