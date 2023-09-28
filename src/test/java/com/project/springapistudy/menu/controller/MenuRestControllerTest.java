@@ -48,7 +48,8 @@ class MenuRestControllerTest {
 
     private final String req = """
             {
-                "menuName" : "%s"
+                "menuName" : "%s",
+                "useYN" : "%s"
             }
             """;
 
@@ -70,7 +71,7 @@ class MenuRestControllerTest {
 
 
             MvcResult mvcResult = mockMvc.perform(post(baseUrl)
-                            .content(req.formatted("미지근한 카라멜 라떼"))
+                            .content(req.formatted("미지근한 카라멜 라떼", "Y"))
                             .contentType(MediaType.APPLICATION_JSON))
                     .andExpect(status().isCreated())
                     .andReturn();
@@ -80,10 +81,34 @@ class MenuRestControllerTest {
         }
 
         @Test
-        @DisplayName("메뉴 저장 요청 실패 - 유효성 검증 실패")
+        @DisplayName("메뉴 저장 요청 실패 - 메뉴 이름 누락")
+        void postApiReqInvalidByMenuName() throws Exception {
+            MvcResult mvcResult = mockMvc.perform(post(baseUrl)
+                            .content(req.formatted("", "Y"))
+                            .contentType(MediaType.APPLICATION_JSON))
+                    .andExpect(status().isBadRequest())
+                    .andReturn();
+
+            assertThat(mvcResult.getResponse()).isNotNull();
+        }
+
+        @Test
+        @DisplayName("메뉴 저장 요청 실패 - 사용 여부 누락")
+        void postApiReqInvalidByUseYN() throws Exception {
+            MvcResult mvcResult = mockMvc.perform(post(baseUrl)
+                            .content(req.formatted("딸기 아이스 커피", ""))
+                            .contentType(MediaType.APPLICATION_JSON))
+                    .andExpect(status().isBadRequest())
+                    .andReturn();
+
+            assertThat(mvcResult.getResponse()).isNotNull();
+        }
+
+        @Test
+        @DisplayName("메뉴 저장 요청 실패 - 모든 필드 누락")
         void postApiReqInvalid() throws Exception {
             MvcResult mvcResult = mockMvc.perform(post(baseUrl)
-                            .content(req.formatted(""))
+                            .content(req.formatted("", ""))
                             .contentType(MediaType.APPLICATION_JSON))
                     .andExpect(status().isBadRequest())
                     .andReturn();
@@ -132,7 +157,7 @@ class MenuRestControllerTest {
         void putApiReqSuccess() throws Exception {
             final String resultUrl = saveMenu("뜨거운 딸기 팥빙수");
             mockMvc.perform(put(resultUrl)
-                            .content(req.formatted("뜨거운 딸기 팥빙수에 두리안 추가"))
+                            .content(req.formatted("뜨거운 딸기 팥빙수에 두리안 추가", "Y"))
                             .contentType(MediaType.APPLICATION_JSON))
                     .andExpect(status().isOk())
                     .andReturn();
@@ -148,7 +173,7 @@ class MenuRestControllerTest {
         void putApiReqInvalid() throws Exception {
             final String resultUrl = saveMenu(menuName);
             mockMvc.perform(put(resultUrl)
-                            .content(req.formatted(""))
+                            .content(req.formatted("", "Y"))
                             .contentType(MediaType.APPLICATION_JSON))
                     .andExpect(status().isBadRequest())
                     .andReturn();
@@ -192,9 +217,10 @@ class MenuRestControllerTest {
     private String saveMenu(String menuName) throws Exception {
         String req = """
                 {
-                    "menuName" : "%s"
+                    "menuName" : "%s",
+                    "useYN" : "%s"
                 }
-                """.formatted(menuName);
+                """.formatted(menuName, "Y");
 
         MvcResult mvcResult = mockMvc.perform(post(baseUrl)
                         .content(req)
