@@ -1,7 +1,7 @@
 package com.project.springapistudy.menu.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.project.springapistudy.common.exception.runtime.NotFoundException;
+import com.project.springapistudy.common.exception.runtime.NotFoundExceptionRuntime;
 import com.project.springapistudy.menu.domain.Menu;
 import com.project.springapistudy.menu.domain.MenuRepository;
 import com.project.springapistudy.menu.object.MenuVo;
@@ -312,7 +312,7 @@ class MenuRestControllerTest {
 
     private Menu findByMenuId(Long id) {
         return menuRepository.findById(id)
-                .orElseThrow(NotFoundException::new);
+                .orElseThrow(NotFoundExceptionRuntime::new);
     }
 
 

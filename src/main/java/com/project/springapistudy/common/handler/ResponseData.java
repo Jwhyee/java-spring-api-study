@@ -2,24 +2,18 @@ package com.project.springapistudy.common.handler;
 
 import lombok.Getter;
 
-public class ResponseData {
+@Getter
+class ResponseData {
+    String detail;
+    String method;
+    String instance;
+    int status;
 
-    public static ApiResult<?> fail(String message, String method, String uri, int status) {
-        return new ApiResult<>(message, method, uri, status);
+    ResponseData(String detail, String method, String instance, int status) {
+        this.detail = detail;
+        this.method = method;
+        this.instance = instance;
+        this.status = status;
     }
 
-    @Getter
-    protected static class ApiResult<T> {
-        String msg;
-        String method;
-        String uri;
-        int status;
-
-        public ApiResult(String msg, String method, String uri, int status) {
-            this.msg = msg;
-            this.method = method;
-            this.uri = uri;
-            this.status = status;
-        }
-    }
 }

@@ -1,7 +1,7 @@
 package com.project.springapistudy.common.handler;
 
-import com.project.springapistudy.common.exception.BaseException;
-import com.project.springapistudy.common.exception.runtime.NotFoundException;
+import com.project.springapistudy.common.exception.RuntimeBaseException;
+import com.project.springapistudy.common.exception.runtime.NotFoundExceptionRuntime;
 import org.springframework.context.support.DefaultMessageSourceResolvable;
 import org.springframework.http.HttpStatus;
 import org.springframework.validation.BindingResult;
@@ -16,25 +16,25 @@ import java.util.List;
 @RestControllerAdvice
 public class ExceptionRestHandler {
 
-    @ExceptionHandler(BaseException.class)
+    @ExceptionHandler(RuntimeBaseException.class)
     @ResponseStatus(HttpStatus.NOT_FOUND)
-    public ResponseData.ApiResult<?> runtimeBaseException(NotFoundException e, HttpServletRequest request) {
-        return handleException(e, request, HttpStatus.NOT_FOUND);
+    public ResponseData runtimeBaseException(RuntimeBaseException e, HttpServletRequest request) {
+        return handleException(e, request, e.getStatus());
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public ResponseData.ApiResult<?> methodArgumentNotValidException(MethodArgumentNotValidException e, HttpServletRequest request) {
+    public ResponseData methodArgumentNotValidException(MethodArgumentNotValidException e, HttpServletRequest request) {
         return handleValidationException(e, request);
     }
 
-    private ResponseData.ApiResult<?> handleException(Exception e, HttpServletRequest request, HttpStatus status) {
+    private ResponseData handleException(Exception e, HttpServletRequest request, HttpStatus status) {
         String method = request.getMethod();
         String uri = request.getRequestURI();
-        return ResponseData.fail(e.getMessage(), method, uri, status.value());
+        return new ResponseData(e.getMessage(), method, uri, status.value());
     }
 
-    private ResponseData.ApiResult<?> handleValidationException(MethodArgumentNotValidException e, HttpServletRequest request) {
+    private ResponseData handleValidationException(MethodArgumentNotValidException e, HttpServletRequest request) {
         String method = request.getMethod();
         String uri = request.getRequestURI();
 
@@ -43,7 +43,7 @@ public class ExceptionRestHandler {
                 .map(DefaultMessageSourceResolvable::getDefaultMessage)
                 .toList();
 
-        return ResponseData.fail(collect.toString(), method, uri, HttpStatus.BAD_REQUEST.value());
+        return new ResponseData(collect.toString(), method, uri, HttpStatus.BAD_REQUEST.value());
     }
 
 }

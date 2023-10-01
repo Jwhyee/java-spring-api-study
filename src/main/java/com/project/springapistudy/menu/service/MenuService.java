@@ -1,7 +1,7 @@
 package com.project.springapistudy.menu.service;
 
-import com.project.springapistudy.common.exception.runtime.DuplicationException;
-import com.project.springapistudy.common.exception.runtime.NotFoundException;
+import com.project.springapistudy.common.exception.runtime.DuplicationExceptionRuntime;
+import com.project.springapistudy.common.exception.runtime.NotFoundExceptionRuntime;
 import com.project.springapistudy.menu.domain.Menu;
 import com.project.springapistudy.menu.domain.MenuRepository;
 import com.project.springapistudy.menu.object.MenuDto;
@@ -22,7 +22,7 @@ public class MenuService {
     public MenuVo saveMenu(MenuDto dto) {
 
         if (existsByMenuName(dto.getMenuName())) {
-            throw new DuplicationException();
+            throw new DuplicationExceptionRuntime();
         }
 
         return MenuVo.fromEntity(menuRepository.save(dto.toEntity()));
@@ -39,7 +39,7 @@ public class MenuService {
         if (currentMenu.getUseYN().equals("Y")) {
             return MenuVo.fromEntity(currentMenu);
         }
-        throw new NotFoundException();
+        throw new NotFoundExceptionRuntime();
     }
 
     @Transactional(readOnly = true)
@@ -62,7 +62,7 @@ public class MenuService {
     @Transactional(readOnly = true)
     public Menu findEntityById(Long id) {
         return menuRepository.findById(id)
-                .orElseThrow(NotFoundException::new);
+                .orElseThrow(NotFoundExceptionRuntime::new);
     }
 
     @Transactional
